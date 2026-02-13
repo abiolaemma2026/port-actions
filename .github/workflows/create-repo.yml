@@ -15,13 +15,13 @@ on:
       private:
         description: 'Make repository private'
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: 'false'
       initialize_readme:
         description: 'Initialize with README'
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: 'true'
       port_run_id:
         description: 'Port run ID for status updates'
         required: false
@@ -45,18 +45,24 @@ jobs:
         id: create_repo
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          REPO_NAME: ${{ inputs.repo_name }}
+          DESCRIPTION: ${{ inputs.description }}
+          PRIVATE: ${{ inputs.private }}
+          INIT_README: ${{ inputs.initialize_readme }}
         run: |
           # Build the command
-          CMD="gh repo create abiolaemma2026/${{ inputs.repo_name }}"
-          CMD="$CMD --description '${{ inputs.description }}'"
+          CMD="gh repo create abiolaemma2026/${REPO_NAME}"
+          CMD="$CMD --description '${DESCRIPTION}'"
           
-          if [ "${{ inputs.private }}" = "true" ]; then
+          # Handle private flag (convert string to boolean logic)
+          if [ "${PRIVATE}" = "true" ]; then
             CMD="$CMD --private"
           else
             CMD="$CMD --public"
           fi
           
-          if [ "${{ inputs.initialize_readme }}" = "true" ]; then
+          # Handle README flag (convert string to boolean logic)
+          if [ "${INIT_README}" = "true" ]; then
             CMD="$CMD --add-readme"
           fi
           
@@ -66,7 +72,7 @@ jobs:
           echo "Executing: $CMD"
           eval $CMD
           
-          echo "repo_url=https://github.com/abiolaemma2026/${{ inputs.repo_name }}" >> $GITHUB_OUTPUT
+          echo "repo_url=https://github.com/abiolaemma2026/${REPO_NAME}" >> $GITHUB_OUTPUT
 
       - name: Notify Port - Success
         if: success() && inputs.port_run_id != ''
