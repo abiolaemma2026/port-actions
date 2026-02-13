@@ -20,14 +20,13 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const inputs = context.payload.inputs || {};
-            const title = `Approval request: ${inputs.repository_name || 'new repo'}`;
-            const body = `Repository: ${inputs.repository_name || ''}\n\nDescription: ${inputs.repo_description || ''}\n\nPort context: ${inputs.port_context || ''}\n\nPlease review and approve.`;
+            const title = 'Approval request: ${{ inputs.repository_name }}';
+            const body = 'Repository: ${{ inputs.repository_name }}\n\nDescription: ${{ inputs.repo_description }}\n\nPort context: ${{ inputs.port_context }}\n\nPlease review and approve.';
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title,
-              body,
+              title: title,
+              body: body,
               labels: ['approval-request']
             });
 
