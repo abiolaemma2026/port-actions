@@ -3,7 +3,7 @@ name: Create Repository with Approval
 on:
   workflow_dispatch:
     inputs:
-      repo_name:
+      repository_name:
         description: 'Repository name'
         required: true
         type: string
@@ -15,7 +15,6 @@ on:
         description: 'Port context'
         required: false
         type: string
-
 jobs:
   request-approval:
     runs-on: ubuntu-latest
