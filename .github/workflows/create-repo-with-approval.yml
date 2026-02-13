@@ -23,14 +23,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Log Inputs (Debug)
+      - name: Log Inputs
         run: |
           echo "Repository Name: ${{ inputs.repo_name }}"
           echo "Description: ${{ inputs.repo_description }}"
           echo "Private: ${{ inputs.repo_private }}"
-          echo "Port Context: ${{ inputs.port_context }}"
 
-      - name: Log starting
+      - name: Notify Port - Starting
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
@@ -39,7 +38,7 @@ jobs:
           runId: ${{ fromJson(inputs.port_context).runId }}
           logMessage: "🚀 Starting repository creation: ${{ inputs.repo_name }}"
 
-      - name: Create GitHub Repository
+      - name: Create Repository
         id: create_repo
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -47,7 +46,6 @@ jobs:
           REPO_DESC: ${{ inputs.repo_description }}
           REPO_PRIVATE: ${{ inputs.repo_private }}
         run: |
-          # Validate inputs
           if [ -z "$REPO_NAME" ]; then
             echo "Error: Repository name is empty!"
             exit 1
@@ -55,55 +53,40 @@ jobs:
           
           echo "Creating repository: $REPO_NAME"
           
-          # Determine privacy setting
           if [ "$REPO_PRIVATE" = "true" ]; then
             PRIVATE_FLAG="--private"
           else
             PRIVATE_FLAG="--public"
           fi
           
-          # Create repository using GitHub CLI
-          RESPONSE=$(gh repo create "abiolaemma2026/$REPO_NAME" \
+          gh repo create "abiolaemma2026/$REPO_NAME" \
             $PRIVATE_FLAG \
             --description "$REPO_DESC" \
-            --clone=false \
-            2>&1)
+            --clone=false
           
-          if [ $? -eq 0 ]; then
-            REPO_URL="https://github.com/abiolaemma2026/$REPO_NAME"
-            echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
-            echo "repo_name=abiolaemma2026/$REPO_NAME" >> $GITHUB_OUTPUT
-            echo "✅ Repository created: $REPO_URL"
-          else
-            echo "❌ Failed to create repository"
-            echo "$RESPONSE"
-            exit 1
-          fi
+          REPO_URL="https://github.com/abiolaemma2026/$REPO_NAME"
+          echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
+          echo "✅ Repository created: $REPO_URL"
 
-      - name: Initialize Repository with README
+      - name: Initialize with README
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           REPO_NAME: ${{ inputs.repo_name }}
           REPO_DESC: ${{ inputs.repo_description }}
         run: |
-          # Clone and initialize
           git clone "https://github.com/abiolaemma2026/$REPO_NAME.git"
           cd "$REPO_NAME"
-          
-          # Create README
           echo "# $REPO_NAME" > README.md
           echo "" >> README.md
           echo "$REPO_DESC" >> README.md
-          
-          # Commit and push
           git config user.name "Port Bot"
           git config user.email "bot@getport.io"
           git add README.md
           git commit -m "Initial commit"
           git push origin main || git push origin master
 
-      - name: Report success to Port
+      - name: Notify Port - Success
         if: success()
         uses: port-labs/port-github-action@v1
         with:
@@ -113,10 +96,10 @@ jobs:
           runId: ${{ fromJson(inputs.port_context).runId }}
           logMessage: |
             ✅ Repository created successfully!
-            🔗 Repository: ${{ steps.create_repo.outputs.repo_url }}
+            🔗 ${{ steps.create_repo.outputs.repo_url }}
           link: ${{ steps.create_repo.outputs.repo_url }}
 
-      - name: Report failure to Port
+      - name: Notify Port - Failure
         if: failure()
         uses: port-labs/port-github-action@v1
         with:
