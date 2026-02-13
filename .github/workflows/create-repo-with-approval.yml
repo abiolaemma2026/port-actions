@@ -1,56 +1,24 @@
-name: Create Repository with Approval
+name: Create GitHub Repository with Approval
+
 on:
   workflow_dispatch:
     inputs:
       repository_name:
+        description: 'Name of the new repository'
         required: true
         type: string
       repo_description:
+        description: 'Brief description of the repository'
         required: false
         type: string
       port_context:
+        description: 'Port context'
         required: true
         type: string
 
 jobs:
-  request-approval:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create approval request issue
-        uses: actions/github-script@v6
-        env:
-          REPO_NAME: ${{ inputs.repository_name }}
-          REPO_DESC: ${{ inputs.repo_description }}
-          PORT_CONTEXT: ${{ inputs.port_context }}
-        with:
-          script: |
-            const repoName = process.env.REPO_NAME;
-            const repoDesc = process.env.REPO_DESC || 'No description provided';
-            const portContext = process.env.PORT_CONTEXT;
-            
-            const title = `Approval request: ${repoName}`;
-            const body = `**Repository:** ${repoName}
-` +
-              `**Description:** ${repoDesc}
-` +
-              `**Port Context:** \`\`\`json
-${portContext}
-\`\`\`
-\n` +
-              `Please review and approve by approving the deployment in the production environment.`;
-            
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['approval-request']
-            });
-
   create-repository:
-    needs: request-approval
     runs-on: ubuntu-latest
-    environment: production  # This environment should have protection rules configured
     steps:
       - name: Inform Port of workflow start
         uses: port-labs/port-github-action@v1
@@ -59,18 +27,42 @@ ${portContext}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
           runId: ${{ fromJson(inputs.port_context).runId }}
-          logMessage: "Waiting for approval..."
+          logMessage: 'Starting repository creation...'
 
       - name: Create GitHub Repository
-        run: |
-          # Your repository creation logic here
-          echo "Creating repository: ${{ inputs.repository_name }}"
-          
-      - name: Report to Port
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            const repoName = '${{ inputs.repository_name }}';
+            const repoDescription = '${{ inputs.repo_description }}' || '';
+            
+            await github.rest.repos.createInOrg({
+              org: 'abiolaemma2026',
+              name: repoName,
+              description: repoDescription,
+              private: false,
+              auto_init: true
+            });
+            
+            console.log(`Repository ${repoName} created successfully`);
+
+      - name: Report success to Port
+        if: success()
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
           runId: ${{ fromJson(inputs.port_context).runId }}
-          logMessage: "Repository created successfully"
+          logMessage: 'Repository created successfully ✅'
+
+      - name: Report failure to Port
+        if: failure()
+        uses: port-labs/port-github-action@v1
+        with:
+          clientId: ${{ secrets.PORT_CLIENT_ID }}
+          clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: PATCH_RUN
+          runId: ${{ fromJson(inputs.port_context).runId }}
+          logMessage: 'Failed to create repository ❌'
