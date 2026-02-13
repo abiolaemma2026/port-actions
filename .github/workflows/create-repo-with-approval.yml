@@ -13,7 +13,26 @@ on:
         type: string
 
 jobs:
+  request-approval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create approval request issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const inputs = context.payload.inputs || {};
+            const title = `Approval request: ${inputs.repository_name || 'new repo'}`;
+            const body = `Repository: ${inputs.repository_name || ''}\n\nDescription: ${inputs.repo_description || ''}\n\nPort context: ${inputs.port_context || ''}\n\nPlease review and approve.`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['approval-request']
+            });
+
   create-repository:
+    needs: request-approval
     runs-on: ubuntu-latest
     environment: production  # This environment should have protection rules configured
     steps:
