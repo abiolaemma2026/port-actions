@@ -3,9 +3,9 @@ name: Create GitHub Repository with Approval
 on:
   workflow_dispatch:
     inputs:
-      port_context:
+      run_id:
         required: true
-        description: "Port's context (entity, run ID, etc.)"
+        description: "Port run ID"
       repo_name:
         required: true
         description: "Name of the repository to create"
@@ -25,6 +25,7 @@ jobs:
     steps:
       - name: Log Inputs
         run: |
+          echo "Run ID: ${{ inputs.run_id }}"
           echo "Repository Name: ${{ inputs.repo_name }}"
           echo "Description: ${{ inputs.repo_description }}"
           echo "Private: ${{ inputs.repo_private }}"
@@ -35,7 +36,7 @@ jobs:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
-          runId: ${{ fromJson(inputs.port_context).runId }}
+          runId: ${{ inputs.run_id }}
           logMessage: "🚀 Starting repository creation: ${{ inputs.repo_name }}"
 
       - name: Create Repository
@@ -93,7 +94,7 @@ jobs:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
-          runId: ${{ fromJson(inputs.port_context).runId }}
+          runId: ${{ inputs.run_id }}
           logMessage: |
             ✅ Repository created successfully!
             🔗 ${{ steps.create_repo.outputs.repo_url }}
@@ -106,5 +107,5 @@ jobs:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
-          runId: ${{ fromJson(inputs.port_context).runId }}
+          runId: ${{ inputs.run_id }}
           logMessage: "❌ Failed to create repository: ${{ inputs.repo_name }}"
