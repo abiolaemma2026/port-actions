@@ -11,6 +11,7 @@ on:
         description: 'Repository description'
         required: false
         type: string
+        default: ''
       private:
         description: 'Make repository private'
         required: false
@@ -22,15 +23,17 @@ on:
         type: boolean
         default: true
       port_run_id:
-        description: 'Port run ID'
-        required: true
+        description: 'Port run ID (leave empty for manual runs)'
+        required: false
         type: string
+        default: ''
 
 jobs:
   create-repository:
     runs-on: ubuntu-latest
     steps:
       - name: Inform Port of workflow start
+        if: ${{ inputs.port_run_id != '' }}
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
@@ -76,11 +79,12 @@ jobs:
             }
 
       - name: Report success to Port
-        if: success()
+        if: ${{ success() && inputs.port_run_id != '' }}
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: PATCHSECRET }}
           operation: PATCH_RUN
           runId: ${{ inputs.port_run_id }}
           logMessage: |
@@ -89,7 +93,7 @@ jobs:
             📦 Full Name: ${{ steps.create_repo.outputs.repo_full_name }}
 
       - name: Report failure to Port
-        if: failure()
+        if: ${{ failure() && inputs.port_run_id != '' }}
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
@@ -99,3 +103,14 @@ jobs:
           logMessage: |
             ❌ Failed to create repository: ${{ inputs.repo_name }}
             Check the workflow logs for details.
+
+      - name: Summary
+        run: |
+          echo "### Repository Creation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Repository Created Successfully**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Name:** ${{ steps.create_repo.outputs.repo_full_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.create_repo.outputs.repo_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Private:** ${{ inputs.private }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **README:** ${{ inputs.initialize_readme }}" >> $GITHUB_STEP_SUMMARY
