@@ -45,7 +45,7 @@ jobs:
         id: approval
         with:
           secret: ${{ github.TOKEN }}
-          approvers: your-github-username  # Replace with actual approver usernames
+          approvers: abiolaemma2026  # Replace with actual approver usernames
           minimum-approvals: 1
           issue-title: "Approve Repository Creation: ${{ github.event.inputs.repository_name }}"
           issue-body: |
